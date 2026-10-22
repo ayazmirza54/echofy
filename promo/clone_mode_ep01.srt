@@ -27,12 +27,12 @@ okay, a lot of bugs.
 And suddenly, it's actually working.
 
 7
-00:00:34,800 --> 00:00:39,800
+00:00:34,800 --> 00:00:39,500
 Meet Echofy. Hold Right Control,
 speak, let go, and it types for you.
 
 8
-00:00:40,000 --> 00:00:46,600
+00:00:39,600 --> 00:00:46,950
 Whisper runs on my own laptop. No cloud, no API
 keys, and it even works over Remote Desktop.
 
