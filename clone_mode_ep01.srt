@@ -1,0 +1,48 @@
+1
+00:00:00,300 --> 00:00:04,800
+I've been using some insanely good apps
+lately. But then I had a thought...
+
+2
+00:00:05,200 --> 00:00:11,600
+What if I could recreate their best
+features... just by vibe coding?
+
+3
+00:00:13,600 --> 00:00:21,800
+First up, Wispr Flow. I wanted voice typing,
+AI cleanup, and a smooth floating interface.
+
+4
+00:00:22,200 --> 00:00:28,000
+A few prompts, some generated
+code, a couple of bugs...
+
+5
+00:00:28,000 --> 00:00:30,800
+okay, a lot of bugs.
+
+6
+00:00:31,000 --> 00:00:33,800
+And suddenly, it's actually working.
+
+7
+00:00:35,000 --> 00:00:39,600
+Meet my own take on AI-powered dictation.
+
+8
+00:00:40,000 --> 00:00:46,400
+Built my way, with the
+features I actually want.
+
+9
+00:00:47,300 --> 00:00:50,600
+And this is just the beginning.
+
+10
+00:00:51,600 --> 00:00:54,200
+One popular app at a time.
+
+11
+00:00:54,400 --> 00:00:58,600
+Let's see how far AI can take us.
