@@ -11,6 +11,7 @@
 <body>
 <canvas id="c" width="1080" height="1920"></canvas>
 <script src="timeline.js"></script>
+<script src="vo_timing.js"></script>
 <script>
 // Every frame is a pure function of t (seconds): renderFrame(t) draws it.
 // Open this file in a browser to preview (?t=12 freezes on a frame,
@@ -322,16 +323,34 @@ function sChallenge(t) {
 }
 
 // ---------- scene 3: target Wispr Flow (12-22) ----------
-const RAW = ['um,', 'so', 'like,', 'build', 'me', 'a', 'voice', 'to', 'text', 'app', 'that,', 'uh,', 'cleans', 'up', 'what', 'i', 'say'];
-const FILLER = new Set(['um,', 'so', 'like,', 'uh,']);
-const CLEAN = '“Build me a voice-to-text app that cleans up what I say.”';
-function micIcon(x, y, s, color) {
-  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
-  rr(-18, -44, 36, 62, 18); ctx.fillStyle = color; ctx.fill();
-  ctx.strokeStyle = color; ctx.lineWidth = 7; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.arc(0, -4, 32, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0, 28); ctx.lineTo(0, 46); ctx.stroke();
-  ctx.restore();
+const TYPED3 = 'Build me a voice-to-text app that types wherever my cursor is.';
+// Echofy's push-to-talk hotkey. down: 0 (up) .. 1 (held).
+function keycap(x, y, w, h, label, down) {
+  const d = down * 12;
+  if (down > 0) glow(x + w / 2, y + h / 2, w * 1.1, C.acc, .45 * down);
+  rr(x, y + 14, w, h, 26); ctx.fillStyle = '#060608'; ctx.fill();
+  rr(x, y + d, w, h, 26); ctx.fillStyle = down > .5 ? '#182008' : '#191920'; ctx.fill();
+  ctx.strokeStyle = down > 0 ? C.acc : '#3a3a46'; ctx.lineWidth = 4; ctx.stroke();
+  rr(x + 14, y + d + 12, w - 28, h - 34, 18); ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 2; ctx.stroke();
+  txt(label, x + w / 2, y + d + h / 2 - 6, { size: h * .2, fam: MONO, weight: 800, color: down > 0 ? C.acc : C.fg, ls: 2 });
+}
+const keyDown = (t, a, b) => clamp((t - a) / .08) * (1 - clamp((t - b) / .08));
+function waveform(t, amp, y, n, x0, step, bw, maxH, flat = 0, col = C.acc) {
+  for (let i = 0; i < n; i++) {
+    const env = Math.sin((i + .5) / n * Math.PI);
+    const h = lerp(6 + amp * maxH * env * (.3 + .7 * noise(i * .45 + t * 9)), 4, flat);
+    ctx.fillStyle = i % 2 ? col : C.fg; ctx.globalAlpha = .9;
+    rr(x0 + i * step, y - h / 2, bw, h, bw / 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+// Keystroke-injected text: appears a few characters at a time, like keyboard.write().
+function typedText(s, t, t0, dur, x, y, size, maxW, lh) {
+  const n = Math.floor(clamp((t - t0) / dur) * s.length);
+  const lay = layoutWords(s.slice(0, n).split(' '), size, 700, SANS, maxW);
+  lay.forEach(L => txt(L.w, x + L.x, y + L.line * lh, { size, weight: 700, align: 'left' }));
+  const last = lay[lay.length - 1];
+  if (t >= t0) caret(last ? x + last.x + last.ww : x, y + (last ? last.line * lh : 0), size * 1.1, t, C.fg);
 }
 function sTarget(t) {
   bgDots(t, .6);
@@ -349,97 +368,62 @@ function sTarget(t) {
     ctx.restore();
     txt('TARGET 01', CX, 690, { size: 36, fam: MONO, weight: 800, color: C.red, ls: 14, alpha: p(t, 12.1, 12.2) });
     slam('WISPR FLOW', CX, 860, t, 12.0, { size: 170, weight: 900, maxW: 980 });
-    txt('voice typing · ai cleanup · floating ui', CX, 990, { size: 30, fam: MONO, weight: 500, color: C.dim, alpha: p(t, 12.4, 12.7) });
+    txt('push-to-talk · local whisper · types anywhere', CX, 990, { size: 30, fam: MONO, weight: 500, color: C.dim, alpha: p(t, 12.4, 12.7), maxW: 960 });
     if (t > 12.6 && Math.floor(t * 6) % 2 === 0) chip('● LOCKED', CX, 1180, { size: 26, bg: null, color: C.red, border: C.red });
     return;
   }
-  const speak = win(t, 14.2, 18.2, .2, .4);
+  const speak = win(t, 14.3, 18.2, .2, .3);
   const amp = speak * (.3 + .7 * noise(t * 7)) * (.55 + .45 * noise(t * 23 + 4));
-  const state = t < 18.2 ? 0 : t < 19.4 ? 1 : 2;
-  const stCol = [C.acc, C.acc2, C.acc][state];
-  // orb
-  glow(CX, 520, 330 + amp * 120, stCol, .35 + amp * .4);
-  ctx.beginPath(); ctx.arc(CX, 520, 100 + amp * 26, 0, 7); ctx.fillStyle = '#07070a'; ctx.fill();
-  ctx.lineWidth = 5; ctx.strokeStyle = stCol; ctx.stroke();
-  for (let r = 0; r < 3; r++) {
-    const ph = ((t * .9 + r / 3) % 1);
-    ctx.beginPath(); ctx.arc(CX, 520, 100 + ph * 140, 0, 7);
-    ctx.strokeStyle = stCol; ctx.globalAlpha = (1 - ph) * .35 * (state === 0 ? 1 : .3); ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1;
-  }
-  micIcon(CX, 528, 1.25, stCol);
+  const state = t < 14.2 ? 0 : t < 18.2 ? 1 : t < 19.0 ? 2 : 3;
+  const stCol = [C.dim, C.acc, C.acc2, C.acc][state];
+  keycap(CX - 200, 400, 400, 220, 'RIGHT CTRL', keyDown(t, 14.1, 18.2));
   const dots = '.'.repeat(1 + Math.floor(t * 3) % 3);
-  const label = ['LISTENING' + dots, '✦ CLEANING UP' + dots, '✓ DONE'][state];
+  const label = ['HOLD TO TALK', '● REC  LISTENING' + dots, 'TRANSCRIBING LOCALLY' + dots, '✓ TYPED, NO CLOUD'][state];
   txt(label, CX, 700, { size: 32, fam: MONO, weight: 700, color: stCol, ls: 6 });
-  // waveform, flattens into a line once speech stops
-  const flat = eInOut(p(t, 18.2, 18.8));
-  for (let i = 0; i < 48; i++) {
-    const env = Math.sin((i + .5) / 48 * Math.PI);
-    const h = lerp(6 + amp * 240 * env * (.3 + .7 * noise(i * .45 + t * 9)), 4, flat);
-    ctx.fillStyle = i % 2 ? stCol : C.fg; ctx.globalAlpha = .9;
-    rr(84 + i * 19, 840 - h / 2, 10, h, 5); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-  // transcript box
+  waveform(t, amp, 840, 48, 84, 19, 10, 240, eInOut(p(t, 18.2, 18.8)), stCol === C.dim ? C.acc : stCol);
+  // console + the app the text gets typed into
   const bx = 70, by = 950, bw = 940, bh = 380;
   rr(bx, by, bw, bh, 26); ctx.fillStyle = C.panel; ctx.fill();
-  ctx.strokeStyle = state === 2 ? C.acc : '#262630'; ctx.lineWidth = 2.5; ctx.stroke();
-  txt(state === 2 ? 'transcript.clean' : 'transcript.raw', bx + 36, by + 44, { size: 24, fam: MONO, weight: 600, align: 'left', color: state === 2 ? C.acc : C.dim });
-  const swap = p(t, 19.2, 19.7);
-  if (swap < 1) {
-    const lay = layoutWords(RAW, 50, 700, SANS, bw - 80);
-    const collapse = eInOut(p(t, 18.4, 19.0));
-    ctx.save(); ctx.globalAlpha = 1 - swap; if (swap > 0) ctx.filter = `blur(${swap * 14}px)`;
-    lay.forEach((L, i) => {
-      const ti = 14.4 + i * .2; if (t < ti) return;
-      const isF = FILLER.has(L.w);
-      const x = bx + 40 + L.x, y = by + 120 + L.line * 70;
-      const a = clamp((t - ti) / .1) * (isF ? 1 - collapse : 1);
-      txt(L.w, x, y, { size: 50, weight: 700, align: 'left', color: isF ? C.red : C.fg, alpha: a });
-      if (isF && t > 18.2) {
-        const sk = p(t, 18.2, 18.45);
-        ctx.fillStyle = C.red; ctx.globalAlpha = a; ctx.fillRect(x, y, L.ww * sk, 5); ctx.globalAlpha = 1 - swap;
-      }
-      if (i === RAW.length - 1 || t < 14.4 + (i + 1) * .2) if (t < 18.2) caret(x + L.ww, y, 54, t);
-    });
-    ctx.restore();
-  }
-  if (swap > 0) {
-    ctx.save(); ctx.globalAlpha = swap; if (swap < 1) ctx.filter = `blur(${(1 - swap) * 14}px)`;
-    const lay = layoutWords(CLEAN.split(' '), 54, 800, SANS, bw - 80);
-    lay.forEach(L => txt(L.w, bx + 40 + L.x, by + 130 + L.line * 76, { size: 54, weight: 800, align: 'left' }));
-    ctx.restore();
-    chip('✦ AI CLEANUP', bx + bw - 30, by + 44, { size: 22, align: 'right', alpha: swap });
-  }
-  ['VOICE TYPING', 'AI CLEANUP', 'FLOATING UI'].forEach((s, i) => {
+  ctx.strokeStyle = state === 3 ? C.acc : '#262630'; ctx.lineWidth = 2.5; ctx.stroke();
+  txt('> python main.py', bx + 36, by + 44, { size: 24, fam: MONO, weight: 600, align: 'left', color: C.dim });
+  chip('base.en · cpu · int8', bx + bw - 30, by + 44, { size: 20, align: 'right', bg: '#16161d', color: C.dim, border: '#2a2a35' });
+  const log = [];
+  if (t >= 14.2) log.push(['[rec] listening...', C.dim]);
+  if (t >= 18.25) log.push(['[rec] transcribing 4.0s...', '#B79CFF']);
+  log.forEach(([s, c], i) => txt(s, bx + 36, by + 100 + i * 40, { size: 26, fam: MONO, weight: 500, color: c, align: 'left' }));
+  ctx.fillStyle = '#1D1D26'; ctx.fillRect(bx + 2, by + 190, bw - 4, 2);
+  txt('notepad', bx + 36, by + 220, { size: 20, fam: MONO, weight: 600, color: '#4a4a56', align: 'left' });
+  typedText(TYPED3, t, 19.0, 1.0, bx + 36, by + 270, 44, bw - 80, 60);
+  ['PUSH-TO-TALK', '100% LOCAL', 'TYPES ANYWHERE'].forEach((s, i) => {
     const k = p(t, 20 + i * .3, 20.35 + i * .3); if (k <= 0) return;
     ctx.save(); ctx.translate(205 + i * 335, 1430); ctx.scale(eOutBack(k), eOutBack(k));
-    chip('✓ ' + s, 0, 0, { size: 26 }); ctx.restore();
+    chip('✓ ' + s, 0, 0, { size: 25 }); ctx.restore();
   });
 }
 
 // ---------- scene 4: vibe coding montage (22-34) ----------
-const CODE = `import numpy as np
-import sounddevice as sd
-import whisper
-from cleanup import cleanup
+// Excerpt of Echofy's main.py (Transcriber).
+const CODE = `class Transcriber:
+    """Wraps faster-whisper. Loads once, on first use."""
 
-# open-source Whisper, running 100% locally
-model = whisper.load_model("base")
+    def load(self):
+        from faster_whisper import WhisperModel
+        self._model = WhisperModel(
+            self.cfg["model"],         # base.en
+            device=self.cfg["device"],  # cpu
+            compute_type=self.cfg["compute_type"],
+        )
 
-def record(seconds=5, rate=16000):
-    audio = sd.rec(int(seconds * rate),
-                   samplerate=rate, channels=1)
-    sd.wait()
-    return audio.flatten()
-
-def dictate():
-    audio = record()
-    raw = model.transcribe(audio)["text"]
-    return cleanup(raw)
-
-if __name__ == "__main__":
-    print(dictate())`.split('\n');
-const KW = /^(import|from|as|def|return|if|True|False|None)$/;
+    def transcribe(self, audio_f32):
+        self.load()
+        segments, _ = self._model.transcribe(
+            audio_f32,
+            language=self.cfg["language"] or None,
+            beam_size=5,
+            vad_filter=True,  # drop silence
+        )
+        return "".join(s.text for s in segments).strip()`.split('\n');
+const KW = /^(class|def|import|from|as|return|if|or|for|in|True|False|None|self)$/;
 function tokenize(line) {
   const out = []; const re = /(#.*|"[^"]*"|\w+|\s+|.)/g; let m;
   while ((m = re.exec(line))) {
@@ -455,11 +439,11 @@ function tokenize(line) {
   return out;
 }
 const CODE_TOK = CODE.map(tokenize);
-const ERRORS = ["CORS policy: No 'Access-Control-Allow-Origin'", 'NotAllowedError: mic permission denied',
-  'Hydration failed: text content mismatch', 'Maximum update depth exceeded', 'cleanup is not a function',
-  '429 Too Many Requests', "Module not found: 'whisper'", 'z-index: 99999 still behind modal',
-  'Unexpected token < in JSON at position 0', 'useEffect has a missing dependency', 'ERR_CONNECTION_REFUSED :3000',
-  'FP16 is not supported on CPU; using FP32'];
+const ERRORS = ['No matching distribution found for ctranslate2', "OSError: PortAudio library not found",
+  "ModuleNotFoundError: No module named 'keyboard'", '[rec] too short, ignored.', '[audio] input overflow',
+  "'python' is not recognized as an internal command", 'PermissionError: [WinError 5] Access is denied',
+  '[rec] still transcribing previous clip; skipped.', 'hotkey does nothing in elevated window',
+  "UnicodeEncodeError: 'charmap' codec can't encode", 'Failed to import faster-whisper', '[error] transcription failed'];
 
 function bubble(text, x, y, maxW, me, t0, t, size = 36, chars = 1e9) {
   const shown = text.slice(0, chars);
@@ -474,13 +458,13 @@ function bubble(text, x, y, maxW, me, t0, t, size = 36, chars = 1e9) {
 }
 function segPrompt(lt, t) {
   windowFrame(60, 360, 960, 1080, 'ai-chat — echofy');
-  const msg = 'build a floating voice dictation overlay. local whisper for speech-to-text + AI cleanup. make it look sick.';
+  const msg = 'build a push-to-talk dictation tool for windows. hold right ctrl, transcribe locally with whisper, type into any app. no cloud.';
   const chars = Math.floor(clamp(lt / .9) * msg.length);
   const bh = bubble(msg, 200, 480, 780, true, 0, t, 38, chars);
   if (lt > 1.0) {
     const y = 480 + bh + 40;
-    bubble('On it — scaffolding 6 files.', 100, y, 780, false, 0, t, 38);
-    ['overlay.tsx', 'transcribe.py', 'cleanup.py', 'styles.css'].forEach((f, i) => {
+    bubble('On it — scaffolding 4 files.', 100, y, 780, false, 0, t, 38);
+    ['main.py', 'config.py', 'requirements.txt', 'run.bat'].forEach((f, i) => {
       if (lt < 1.2 + i * .15) return;
       txt('✓', 130, y + 150 + i * 56, { size: 32, fam: MONO, weight: 800, color: C.acc, align: 'left' });
       txt(f, 180, y + 150 + i * 56, { size: 32, fam: MONO, weight: 500, align: 'left' });
@@ -490,20 +474,19 @@ function segPrompt(lt, t) {
   txt('Ask anything…', 140, 1369, { size: 28, weight: 500, align: 'left', color: C.dim });
 }
 function segCode(lt, t) {
-  windowFrame(60, 360, 960, 1080, 'transcribe.py');
-  let budget = Math.floor(lt * 520);
+  windowFrame(60, 360, 960, 1080, 'main.py');
+  let budget = Math.floor(lt * 600);
   let lastX = 0, lastY = 0;
   CODE_TOK.forEach((toks, li) => {
     if (budget <= 0) return;
     const y = 480 + li * 42;
-    txt(String(li + 1).padStart(2, ' '), 90, y, { size: 24, fam: MONO, weight: 400, color: '#44444f', align: 'left' });
+    txt(String(li + 35).padStart(2, ' '), 90, y, { size: 24, fam: MONO, weight: 400, color: '#44444f', align: 'left' });
     let x = 150;
-    setFont(26, 500, MONO);
     for (const [s, c] of toks) {
       if (budget <= 0) break;
       const part = s.slice(0, budget); budget -= s.length;
-      txt(part, x, y, { size: 26, fam: MONO, weight: 500, color: c, align: 'left' });
-      x += tw(part, 26, 500, MONO);
+      txt(part, x, y, { size: 25, fam: MONO, weight: 500, color: c, align: 'left' });
+      x += tw(part, 25, 500, MONO);
     }
     budget -= 1; lastX = x; lastY = y;
   });
@@ -516,38 +499,27 @@ function segCode(lt, t) {
 }
 function terminal(lines, title, t) {
   windowFrame(60, 360, 960, 1080, title);
-  lines.forEach(([s, c, w], i) => txt(s, 100, 480 + i * 56, { size: 32, fam: MONO, weight: w || 500, color: c || C.fg, align: 'left', maxW: 880 }));
+  lines.forEach(([s, c, w], i) => txt(s, 100, 480 + i * 56, { size: 30, fam: MONO, weight: w || 500, color: c || C.fg, align: 'left', maxW: 880 }));
 }
 function segInstall(lt, t) {
-  const k = clamp(lt / .8), n = 24, f = Math.floor(k * n);
-  terminal([
-    ['~/projects/echofy', C.cyan, 700],
-    ['$ npm install', C.fg],
-    ['[' + '█'.repeat(f) + '░'.repeat(n - f) + '] ' + Math.floor(k * 100) + '%', C.acc],
-    k >= 1 ? ['added 214 packages in 0.9s', C.dim] : ['resolving dependencies…', C.dim],
-  ], 'zsh — echofy', t);
+  const k = clamp((lt - .3) / .7), n = 24, f = Math.floor(k * n);
+  const L = [['C:\\echofy> run.bat', C.fg, 700], ['[setup] Creating virtual environment with: python', C.dim]];
+  if (lt > .25) L.push(['[setup] Installing dependencies (first run only)...', C.dim]);
+  if (lt > .3) L.push(['[' + '█'.repeat(f) + '░'.repeat(n - f) + '] ' + Math.floor(k * 100) + '%', C.acc]);
+  terminal(L, 'cmd — echofy', t);
 }
-function segPreview(lt, t) {
-  windowFrame(60, 360, 960, 1080, '');
-  rr(220, 378, 640, 44, 22); ctx.fillStyle = '#17171f'; ctx.fill();
-  txt('localhost:3000', CX, 401, { size: 22, fam: MONO, weight: 500, color: C.dim });
-  ctx.save(); ctx.translate(380, 900); ctx.rotate(-.06);
-  rr(-200, -50, 640, 100, 50); ctx.fillStyle = '#111'; ctx.fill(); ctx.strokeStyle = C.acc; ctx.lineWidth = 3; ctx.stroke();
-  txt('Click to start dictating your thoughts into any app', -150, 0, { size: 30, weight: 700, align: 'left' });
-  ctx.restore();
-  txt('Start', 860, 1180, { size: 30, weight: 700 });
-  rr(800, 1150, 120, 60, 12); ctx.strokeStyle = C.dim; ctx.lineWidth = 2; ctx.stroke();
-  const cx = lerp(300, 860, eInOut(clamp(lt / .6))), cy = lerp(1300, 1180, eInOut(clamp(lt / .6)));
-  ctx.save(); ctx.translate(cx, cy); ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 44); ctx.lineTo(12, 33); ctx.lineTo(22, 54); ctx.lineTo(30, 50); ctx.lineTo(20, 30); ctx.lineTo(36, 30); ctx.closePath(); ctx.fill();
-  ctx.restore();
-  chip('PREVIEW', 100, 1390, { size: 24, align: 'left', bg: '#16161d', color: C.dim, border: '#2a2a35' });
+function segPip(lt, t) {
+  const pkgs = ['faster-whisper>=1.0.3', 'sounddevice>=0.4.6', 'numpy>=1.24', 'keyboard>=0.13.5', 'pystray>=0.19.5', 'ctranslate2<5,>=4.0'];
+  const L = [['C:\\echofy> run.bat', C.fg, 700], ['[setup] Installing dependencies (first run only)...', C.dim]];
+  pkgs.forEach((s, i) => { if (lt >= i * .13) L.push(['Collecting ' + s, i === pkgs.length - 1 ? C.amber : C.fg]); });
+  if (lt > .8) L.push([['⠋', '⠙', '⠹', '⠸', '⠼', '⠴'][Math.floor(t * 20) % 6] + ' looking for a wheel...', C.dim]);
+  terminal(L, 'cmd — echofy', t);
 }
 function segBug(lt, t) {
   glow(CX, 900, 900, C.red, .25 + .1 * Math.sin(t * 30));
-  windowFrame(60, 360, 960, 1080, 'console', { border: C.red, shadow: 'rgba(255,59,92,.4)' });
-  [['✗ RuntimeError: expected scalar', C.red, 800], ['  type Float but found Double', C.red, 800], ['  in model.transcribe(audio)', C.red, 800],
-   ['    File "transcribe.py", line 17', C.dim], ['    in dictate', C.dim]]
+  windowFrame(60, 360, 960, 1080, 'cmd — echofy', { border: C.red, shadow: 'rgba(255,59,92,.4)' });
+  [['✗ ERROR: Could not find a version that', C.red, 800], ['  satisfies the requirement ctranslate2', C.red, 800], ['  (no wheels for Python 3.13 yet)', C.red, 800],
+   ['[setup] Something went wrong during setup.', C.dim], ['        See the messages above.', C.dim]]
     .forEach(([s, c, w], i) => txt(s, 100, 480 + i * 52, { size: 30, fam: MONO, weight: w || 500, color: c, align: 'left', maxW: 880 }));
   const n = Math.floor(clamp((lt - .6) / 1.2) * 22);
   for (let i = 0; i < n; i++) {
@@ -563,10 +535,11 @@ function segBug(lt, t) {
 function segFix(lt, t) {
   windowFrame(60, 360, 960, 1080, 'ai-chat — echofy');
   bubble('fix it.', 600, 480, 380, true, 0, t, 40);
-  const diff = [['- raw = model.transcribe(audio)["text"]', C.red, 'rgba(255,59,92,.14)'],
-    ['+ audio = audio.astype(np.float32)', C.acc, 'rgba(198,255,61,.12)'],
-    ['+ raw = model.transcribe(audio,', C.acc, 'rgba(198,255,61,.12)'],
-    ['+     fp16=False)["text"]', C.acc, 'rgba(198,255,61,.12)']];
+  txt('run.bat', 90, 615, { size: 24, fam: MONO, weight: 600, color: C.dim, align: 'left' });
+  const diff = [['- set "PY=python"', C.red, 'rgba(255,59,92,.14)'],
+    ['+ set "PY=py -3.12"', C.acc, 'rgba(198,255,61,.12)'],
+    ['+ %PY% --version >nul 2>&1 || set "PY=py -3.11"', C.acc, 'rgba(198,255,61,.12)'],
+    ['+ %PY% --version >nul 2>&1 || set "PY=python"', C.acc, 'rgba(198,255,61,.12)']];
   diff.forEach(([s, c, bg], i) => {
     if (lt < .15 + i * .1) return;
     ctx.fillStyle = bg; ctx.fillRect(62, 640 + i * 60, 956, 56);
@@ -577,16 +550,17 @@ function segFix(lt, t) {
 function segRun(lt, t) {
   if (t >= 33.75) return;
   const zoom = 1 + eInOut(p(t, 33.2, 33.75)) * 1.4;
-  ctx.save(); ctx.translate(CX, 760); ctx.scale(zoom, zoom); ctx.translate(-CX, -760);
-  const typed = '$ npm run dev'.slice(0, Math.floor(clamp((t - 31.05) / .35) * 13));
-  const L = [['~/projects/echofy', C.cyan, 700], [typed, C.fg]];
-  const checks = [['✓ Whisper (base) loaded locally', 31.5], ['✓ AI text cleanup enabled', 32.0], ['✓ Floating overlay rendered', 32.5]];
-  checks.forEach(([s, ti]) => { if (t >= ti) L.push([s, C.green, 700]); });
-  terminal(L, '~/projects/echofy', t);
-  if (t >= 33.0) slam('✓ Ready on localhost:3000', 100, 760, t, 33.0, { size: 40, fam: MONO, weight: 800, color: C.acc, glow: 30, align: 'left', from: 1.3, shake: 6 });
+  ctx.save(); ctx.translate(CX, 816); ctx.scale(zoom, zoom); ctx.translate(-CX, -816);
+  const cmd = 'C:\\echofy> run.bat';
+  const L = [[cmd.slice(0, Math.floor(clamp((t - 31.05) / .35) * cmd.length)), C.fg, 700]];
+  if (t >= 31.5) L.push(['='.repeat(44), '#44444f'], ['  Echofy - local voice dictation', C.fg, 800], ['  Hold [right ctrl] to dictate, release to type.', C.dim]);
+  if (t >= 32.0) L.push(["[model] Loading Whisper 'base.en' (cpu/int8)...", C.dim]);
+  if (t >= 32.5) L.push(['[model] Ready in 1.8s.', C.green, 700]);
+  terminal(L, 'cmd — echofy', t);
+  if (t >= 33.0) slam('✓ Hold Right Ctrl to dictate', 100, 816, t, 33.0, { size: 40, fam: MONO, weight: 800, color: C.acc, glow: 30, align: 'left', from: 1.3, shake: 6, maxW: 880 });
   ctx.restore();
 }
-const SEGS = [[22, 24, segPrompt], [24, 26, segCode], [26, 27, segInstall], [27, 28, segPreview], [28, 30, segBug], [30, 31, segFix], [31, 34, segRun]];
+const SEGS = [[22, 24, segPrompt], [24, 26, segCode], [26, 27, segInstall], [27, 28, segPip], [28, 30, segBug], [30, 31, segFix], [31, 34, segRun]];
 function hudStat(label, value, x, color = C.fg) {
   txt(label, x, 250, { size: 20, fam: MONO, weight: 600, color: C.dim, ls: 4 });
   txt(value, x, 294, { size: 40, fam: MONO, weight: 800, color });
@@ -611,8 +585,7 @@ function sMontage(t) {
 }
 
 // ---------- scene 5: the reveal (34-47) ----------
-const MESSY = 'so um basically i think we should like push the launch to friday because uh the tests are kinda failing'.split(' ');
-const POLISHED = 'I think we should push the launch to Friday — the tests are still failing.';
+const DEMO = 'Hey team, quick update. The launch moves to Friday because the tests are still failing.';
 function callout(label, ax, ay, lx, ly, t, t0) {
   const d = t - t0; if (d < 0) return;
   const k = eOutExpo(clamp(d / .4));
@@ -654,64 +627,42 @@ function sReveal(t) {
   ctx.save(); ctx.translate(CX, CY); ctx.scale(dz, dz); ctx.translate(-CX, -CY);
   const ti = eOutCubic(p(t, 35, 35.8));
   txt(TL.appName, CX, 250, { size: 100, weight: 900, ls: lerp(60, 12, ti), alpha: ti });
-  txt('v0.1 · powered by local Whisper', CX, 322, { size: 26, fam: MONO, weight: 500, color: C.dim, alpha: p(t, 35.4, 35.8) });
-  // app window
+  txt('v0.1 · local Whisper · Windows', CX, 322, { size: 26, fam: MONO, weight: 500, color: C.dim, alpha: p(t, 35.4, 35.8) });
+  // the app being dictated into
   const wy = lerp(1600, 390, eOutExpo(p(t, 35, 35.6)));
-  windowFrame(70, wy, 940, 760, 'New message');
+  windowFrame(70, wy, 940, 740, 'New message');
   [['To', 'team'], ['Subject', 'launch update']].forEach(([k, v], i) => {
     txt(k, 110, wy + 130 + i * 70, { size: 30, weight: 600, color: C.dim, align: 'left' });
     txt(v, 250, wy + 130 + i * 70, { size: 30, weight: 600, align: 'left' });
     ctx.fillStyle = C.line; ctx.fillRect(100, wy + 165 + i * 70, 880, 2);
   });
-  const typed = Math.floor(clamp((t - 40.6) / 1.3) * POLISHED.length);
-  if (t < 40.6) txt('Start dictating…', 110, wy + 320, { size: 40, weight: 500, color: '#3a3a46', align: 'left' });
-  else {
-    const lay = layoutWords(POLISHED.slice(0, typed).split(' '), 46, 700, SANS, 840);
-    const hl = win(t, 41.9, 43.2, .1, .6);
-    lay.forEach(L => {
-      const x = 110 + L.x, y = wy + 320 + L.line * 66;
-      if (hl > 0) { ctx.fillStyle = `rgba(198,255,61,${.22 * hl})`; ctx.fillRect(x - 4, y - 30, L.ww + 18, 60); }
-      txt(L.w, x, y, { size: 46, weight: 700, align: 'left' });
-    });
-    const last = lay[lay.length - 1];
-    if (last) caret(110 + last.x + last.ww, wy + 320 + last.line * 66, 52, t, C.fg);
+  if (t < 39.9) txt('Hold Right Ctrl and talk…', 110, wy + 320, { size: 40, weight: 500, color: '#3a3a46', align: 'left' });
+  else typedText(DEMO, t, 39.9, 1.3, 110, wy + 320, 46, 840, 66);
+  if (t > 44.2) {
+    const k = eOutBack(p(t, 44.2, 44.5));
+    ctx.save(); ctx.translate(900, wy + 2); ctx.rotate(.06); ctx.scale(k, k);
+    chip('✓ WORKS OVER RDP', 0, 0, { size: 24 }); ctx.restore();
   }
-  // floating overlay pill
-  const listening = t >= 35.8 && t < 39.4, cleaning = t >= 39.4 && t < 40.6;
-  const expand = eInOut(p(t, 35.8, 36.2)) * (1 - eInOut(p(t, 40.5, 40.9)));
-  const pw = lerp(560, 940, expand), ph = lerp(110, 300, expand), px = CX - pw / 2, py = 1335 - ph / 2;
+  // push-to-talk key + Echofy's console
   const pin = eOutBack(p(t, 35.3, 35.7));
-  ctx.save(); ctx.translate(CX, 1335); ctx.scale(pin, pin); ctx.translate(-CX, -1335);
-  ctx.shadowColor = listening ? 'rgba(198,255,61,.35)' : 'rgba(139,92,255,.35)'; ctx.shadowBlur = 60;
-  rr(px, py, pw, ph, 55); ctx.fillStyle = 'rgba(14,14,20,.96)'; ctx.fill(); ctx.shadowBlur = 0;
-  ctx.strokeStyle = cleaning ? C.acc2 : C.acc; ctx.lineWidth = 3; ctx.stroke();
-  const ry = py + 55;
-  ctx.beginPath(); ctx.arc(px + 60, ry, 30, 0, 7); ctx.fillStyle = cleaning ? C.acc2 : C.acc; ctx.fill();
-  micIcon(px + 60, ry + 3, .5, '#000');
-  const amp = listening ? (.35 + .65 * noise(t * 8)) : .05;
-  const nb = Math.round(lerp(16, 26, expand));
-  for (let i = 0; i < nb; i++) {
-    const h = 6 + amp * 60 * noise(i * .5 + t * 10) * Math.sin((i + .5) / nb * Math.PI);
-    ctx.fillStyle = cleaning ? C.acc2 : C.acc; rr(px + 120 + i * 13, ry - h / 2, 7, h, 3.5); ctx.fill();
+  ctx.save(); ctx.translate(CX, 1330); ctx.scale(pin, pin); ctx.translate(-CX, -1330);
+  keycap(90, 1245, 290, 165, 'RIGHT CTRL', keyDown(t, 35.8, 39.4));
+  for (const [bt, hz] of [[35.8, '880 Hz'], [39.4, '440 Hz']]) {
+    const d = t - bt; if (d < 0 || d > .8) continue;
+    txt('♪ beep ' + hz, 235, 1225 - d * 60, { size: 22, fam: MONO, weight: 700, color: C.acc, alpha: 1 - d / .8 });
   }
-  const status = listening ? 'listening' : cleaning ? '✦ cleaning up' : t >= 40.6 ? '✓ inserted' : 'ready';
-  txt(status, px + pw - 40, ry, { size: 26, fam: MONO, weight: 700, color: cleaning ? '#B79CFF' : C.acc, align: 'right' });
-  if (expand > .5) {
-    const lay = layoutWords(MESSY, 32, 600, SANS, pw - 100);
-    ctx.save(); ctx.globalAlpha = p(expand, .5, 1);
-    lay.forEach((L, i) => {
-      const tw0 = 36.2 + i * .14; if (t < tw0) return;
-      let col = C.dim;
-      if (cleaning) { const sx = px + 50 + L.x, sh = px + ((t - 39.4) / 1.2) * (pw + 300) - 150; col = Math.abs(sx - sh) < 140 ? '#E3D8FF' : '#6a5a9a'; }
-      txt(L.w, px + 50 + L.x, ry + 75 + L.line * 44, { size: 32, weight: 600, color: col, align: 'left' });
-    });
-    ctx.restore();
-  }
+  windowFrame(420, 1230, 590, 200, 'python main.py');
+  const log = [['ready.', C.dim]];
+  if (t >= 35.8) log.push(['[rec] listening...', C.dim]);
+  if (t >= 39.4) log.push(['[rec] transcribing 3.6s...', '#B79CFF']);
+  if (t >= 39.9) log.push(["[rec] 'Hey team, quick update…' (0.8s)", C.acc]);
+  log.slice(-2).forEach(([s, c], i) => txt(s, 450, 1345 + i * 42, { size: 22, fam: MONO, weight: 600, color: c, align: 'left', maxW: 530 }));
+  if (t >= 35.8 && t < 39.4) waveform(t, .35 + .65 * noise(t * 8), 1268, 10, 872, 12, 6, 34, 0, C.acc);
   ctx.restore();
   ctx.restore();
-  callout('VOICE INPUT ✓', 340, 1335, 400, 1475, t, 41.6);
-  callout('AI CLEANUP ✓', 900, 760, 880, 520, t, 42.3);
-  callout('CUSTOM UI ✓', 1010, 1000, 760, 1215, t, 43.0);
+  callout('PUSH-TO-TALK ✓', 235, 1410, 300, 1500, t, 41.6);
+  callout('LOCAL WHISPER ✓', 715, 1230, 650, 1185, t, 42.3);
+  callout('TYPES ANYWHERE ✓', 900, 720, 880, 520, t, 43.0);
 }
 
 // ---------- scene 6: series teaser + CTA (47-60) ----------
@@ -799,9 +750,8 @@ function captions(t) {
   if (!SHOW_CAPTIONS) return;
   for (const c of TL.captions) {
     if (t < c.s || t > c.e + .15) continue;
-    const words = c.text.split(' ');
-    const per = Math.min(.3, (c.e - c.s) * .75 / words.length);
-    const shown = Math.min(words.length, Math.floor((t - c.s) / per) + 1);
+    const words = c.text.split(' '), starts = wordStarts(c);
+    const shown = starts.filter(s => s <= t).length;
     const alpha = 1 - p(t, c.e, c.e + .15);
     const lay = layoutWords(words, 52, 800, SANS, 900);
     const nLines = lay[lay.length - 1].line + 1;
@@ -813,8 +763,8 @@ function captions(t) {
     lay.forEach((L, i) => {
       if (i >= shown) return;
       const x = CX - lineW[L.line] / 2 + L.x, y = y0 + L.line * lh;
-      const age = t - (c.s + i * per), pop = eOutBack(clamp(age / .14));
-      const current = i === shown - 1 && t < c.s + per * words.length + .2;
+      const age = t - starts[i], pop = eOutBack(clamp(age / .14));
+      const current = i === shown - 1 && t < starts[starts.length - 1] + .3;
       ctx.save(); ctx.translate(x + L.ww / 2, y); ctx.scale(lerp(.6, 1, pop), lerp(.6, 1, pop));
       txt(L.w, 0, 0, { size: 52, weight: 800, color: current ? C.acc : C.fg });
       ctx.restore();

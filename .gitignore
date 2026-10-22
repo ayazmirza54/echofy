@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 .venv/
+promo/reel/kokoro-v1.0.onnx
+promo/reel/voices-v1.0.bin

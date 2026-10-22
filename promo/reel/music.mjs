@@ -114,12 +114,16 @@ pad(47, 4, CHORDS[0].map(n => n + 12), .09, .02);
 riser(49.5, 51, .25);
 for (let t = 22; t < 24; t += .055) click(t + (rnd() + 1) * .01);   // typing the prompt
 for (let t = 30; t < 30.25; t += .05) click(t);                       // "fix it."
-for (let t = 31.05; t < 31.4; t += .03) click(t);                     // npm run dev
+for (let t = 31.05; t < 31.4; t += .03) click(t);                     // run.bat
 for (const t of [31.5, 32, 32.5, 33]) blip(t, 1760, .12, .09);        // checkmarks
 buzz(28); for (let i = 0; i < 22; i++) blip(28.6 + i * 1.2 / 22, 220 + i * 30, .08, .06);
 riser(31, 33.75, .45);
 for (let t = 32; t < 33.75; t += Math.max(.0625, BEAT / 2 * (1 - (t - 32) / 1.75))) clap(t, .18 + .25 * (t - 32) / 1.75);
-for (let k = 0; k < 4; k++) blip(36 + k * .9, 300 + k * 80, .03, .08);   // mic ticks in the demo
+// Echofy's own cues: winsound.Beep(880) on press, Beep(440) on release, then
+// keyboard.write() typing the transcript into the focused app.
+const beep = (t0, f) => add(L, t0, .09, (t) => Math.sin(2 * Math.PI * f * t) * Math.min(1, t * 400, (.09 - t) * 400), .22);
+for (const [down, up] of [[14.1, 18.2], [35.8, 39.4]]) { beep(down, 880); beep(up, 440); }
+for (const [a, b] of [[19.0, 20.0], [39.9, 41.2]]) for (let t = a; t < b; t += .028) click(t, .05);
 pad(53.5, 6, CHORDS[0], .11, .02);
 
 // --- mix ----------------------------------------------------------------

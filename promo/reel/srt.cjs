@@ -7,6 +7,8 @@ const fs = require('fs');
 const path = require('path');
 
 require(path.join(__dirname, 'timeline.js'));
+const voTiming = path.join(__dirname, 'vo_timing.js');
+if (fs.existsSync(voTiming)) require(voTiming);
 const { captions } = globalThis.TL;
 const base = process.argv[2] || path.join(__dirname, '..', 'clone_mode_ep01');
 
@@ -28,17 +30,15 @@ function wrap(text, max = 42) {
 }
 const cue = (i, s, e, text) => `${i}\n${ts(s)} --> ${ts(e)}\n${text}\n`;
 
-// Same reveal timing as captions() in scene.html.
-const per = c => Math.min(.3, (c.e - c.s) * .75 / c.text.split(' ').length);
 
 const lines = captions.map((c, i) => cue(i + 1, c.s, c.e, wrap(c.text)));
 
 const words = [];
 for (const c of captions) {
-  const w = c.text.split(' '), step = per(c), size = 3;
+  const w = c.text.split(' '), starts = wordStarts(c), size = 3;
   for (let k = 0; k < w.length; k += size) {
-    const s = c.s + k * step;
-    const e = k + size < w.length ? c.s + (k + size) * step : c.e;
+    const s = starts[k];
+    const e = k + size < w.length ? starts[k + size] : c.e;
     words.push(cue(words.length + 1, s, e, w.slice(k, k + size).join(' ')));
   }
 }
