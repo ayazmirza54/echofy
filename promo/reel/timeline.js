@@ -33,7 +33,7 @@ globalThis.TL = {
 
   // Voiceover text-to-speech (voiceover.py, Kokoro). Voices: af_heart, af_bella,
   // am_michael, am_fenrir, am_puck, bm_george, ...
-  tts: { voice: "af_heart", speed: 1.08 },
+  tts: { voice: "am_michael", speed: 1.08 },
 
   // Voiceover lines. Spoken by the TTS voiceover starting at `s`, burned in as
   // captions, and exported as .srt. `say` overrides the text for pronunciation.
@@ -45,9 +45,9 @@ globalThis.TL = {
     { s: 22.2, e: 28.0, text: "A few prompts, some generated Python, a couple of bugs..." },
     { s: 28.0, e: 30.8, text: "okay, a lot of bugs." },
     { s: 31.0, e: 33.8, text: "And suddenly, it's actually working." },
-    { s: 34.8, e: 39.8, text: "Meet Echofy. Hold Right Control, speak, let go, and it types for you.",
+    { s: 34.8, e: 39.5, text: "Meet Echofy. Hold Right Control, speak, let go, and it types for you.",
       say: "Meet Echo-fy. Hold right control, speak, let go, and it types for you." },
-    { s: 40.0, e: 46.6, text: "Whisper runs on my own laptop. No cloud, no API keys, and it even works over Remote Desktop." },
+    { s: 39.6, e: 46.95, text: "Whisper runs on my own laptop. No cloud, no API keys, and it even works over Remote Desktop." },
     { s: 47.3, e: 50.6, text: "And this is just the beginning." },
     { s: 51.6, e: 54.2, text: "One popular app at a time." },
     { s: 54.4, e: 58.6, text: "Let's see how far AI can take us." },
