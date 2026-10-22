@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echofy — hold a key, talk, it types</title>
+<meta name="description" content="Echofy is free push-to-talk voice dictation for Windows. Hold Right Ctrl, speak, release: Whisper transcribes on your own machine and types into any app. No cloud, no API keys, no account.">
+<meta property="og:title" content="Echofy — hold a key, talk, it types">
+<meta property="og:description" content="Free push-to-talk dictation for Windows. Whisper runs locally and types into any app. No cloud, no API keys.">
+<meta property="og:image" content="/og.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000; --panel: #0B0B10; --panel2: #111118; --line: #1F1F29; --fg: #F4F4F6; --dim: #8A8A96;
+    --lime: #C6FF3D; --violet: #8B5CF6; --red: #FF3B5C;
+    --sans: 'Inter', system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --max: 1120px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--fg); font: 400 18px/1.6 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: -1;
+    background: radial-gradient(800px 500px at 75% 0%, rgba(139,92,246,.18), transparent 70%),
+                radial-gradient(600px 400px at 0% 30%, rgba(198,255,61,.07), transparent 70%);
+  }
+  body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: -1; opacity: .5;
+    background-image: radial-gradient(rgba(255,255,255,.07) 1.2px, transparent 1.2px); background-size: 34px 34px; }
+  a { color: inherit; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+  .mono { font-family: var(--mono); }
+  .kicker { font: 700 13px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--lime); }
+
+  /* nav */
+  nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); background: rgba(0,0,0,.6); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 28px; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; text-decoration: none; letter-spacing: -.02em; }
+  .brand img { width: 30px; height: 30px; border-radius: 8px; }
+  nav .links { display: flex; gap: 24px; margin-left: auto; font-size: 15px; color: var(--dim); }
+  nav .links a { text-decoration: none; } nav .links a:hover { color: var(--fg); }
+  .btn { display: inline-flex; align-items: center; gap: 10px; font: 800 16px var(--sans); text-decoration: none; border-radius: 999px;
+    padding: 14px 24px; transition: transform .15s ease, box-shadow .15s ease; border: 0; cursor: pointer; white-space: nowrap; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--lime); color: #000; box-shadow: 0 0 0 0 rgba(198,255,61,.5), 0 10px 40px -10px rgba(198,255,61,.6); }
+  .btn-ghost { background: transparent; color: var(--fg); border: 1.5px solid #34343f; }
+  .btn-sm { padding: 10px 18px; font-size: 14px; }
+  .btn svg { width: 20px; height: 20px; flex: none; }
+
+  /* hero */
+  .hero { padding: 72px 0 56px; }
+  .hero .wrap { display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center; }
+  h1 { font: 900 clamp(48px, 7.2vw, 92px)/.95 var(--sans); letter-spacing: -.045em; margin: 18px 0 22px; }
+  h1 em { font-style: normal; color: var(--lime); text-shadow: 0 0 40px rgba(198,255,61,.35); }
+  .lede { font-size: 20px; color: #C9C9D2; max-width: 34em; }
+  .cta { display: flex; flex-wrap: wrap; gap: 14px; margin: 32px 0 14px; }
+  .meta { font: 500 13px var(--mono); color: var(--dim); }
+  .meta b { color: var(--fg); font-weight: 600; }
+  .phone { position: relative; justify-self: center; width: min(340px, 100%); aspect-ratio: 9 / 16; border-radius: 34px; overflow: hidden;
+    border: 1.5px solid #2a2a35; box-shadow: 0 40px 120px -30px rgba(139,92,246,.5), 0 0 0 10px #0b0b10; background: #000; }
+  .phone video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .unmute { position: absolute; right: 14px; bottom: 14px; font: 700 12px var(--mono); background: rgba(0,0,0,.7); color: var(--fg);
+    border: 1px solid #3a3a46; border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+
+  /* try it */
+  .try { margin-top: 56px; border: 1px solid var(--line); background: linear-gradient(180deg, var(--panel), #07070a); border-radius: 24px;
+    padding: 28px; display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: center; }
+  .key { width: 210px; height: 128px; border-radius: 22px; background: #191920; border: 3px solid #3a3a46; color: var(--fg);
+    font: 800 20px var(--mono); letter-spacing: .06em; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none;
+    box-shadow: 0 12px 0 #060608; transition: transform .06s, box-shadow .06s, border-color .1s, color .1s; position: relative; }
+  .key.down { transform: translateY(10px); box-shadow: 0 2px 0 #060608, 0 0 60px rgba(198,255,61,.45); border-color: var(--lime); color: var(--lime); background: #182008; }
+  .key small { display: block; font: 600 11px var(--mono); color: var(--dim); letter-spacing: .1em; margin-top: 6px; }
+  .console { font: 500 14px var(--mono); color: var(--dim); min-height: 22px; display: flex; align-items: center; gap: 12px; }
+  .bars { display: inline-flex; gap: 3px; align-items: center; height: 22px; }
+  .bars i { width: 4px; border-radius: 2px; background: var(--lime); height: 4px; transition: height .08s; }
+  .doc { margin-top: 12px; background: #050507; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; min-height: 92px;
+    font: 600 20px/1.5 var(--sans); color: var(--fg); }
+  .doc .ph { color: #4a4a56; font-weight: 500; }
+  .caret { display: inline-block; width: 2px; height: 1.1em; background: var(--fg); vertical-align: -3px; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  section { padding: 96px 0; }
+  h2 { font: 900 clamp(36px, 5vw, 56px)/1.02 var(--sans); letter-spacing: -.035em; margin: 14px 0 18px; }
+  .sub { color: #B8B8C2; max-width: 40em; font-size: 19px; }
+
+  /* features */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 26px; }
+  .card .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: rgba(198,255,61,.1); color: var(--lime); margin-bottom: 18px; }
+  .card .ic svg { width: 24px; height: 24px; }
+  .card h3 { font: 800 20px var(--sans); letter-spacing: -.01em; margin-bottom: 8px; }
+  .card p { color: var(--dim); font-size: 16px; }
+
+  /* pipeline */
+  .flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px; counter-reset: s; }
+  .flow .card { position: relative; }
+  .flow .n { font: 800 13px var(--mono); color: var(--lime); letter-spacing: .12em; }
+  .flow code { display: block; margin-top: 14px; font: 500 13px/1.6 var(--mono); color: #C9C9D2; background: #050507; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+
+  /* install */
+  .steps { margin-top: 40px; display: grid; gap: 14px; counter-reset: step; max-width: 820px; }
+  .step { display: grid; grid-template-columns: 52px 1fr; gap: 18px; align-items: start; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+  .step::before { counter-increment: step; content: counter(step); width: 52px; height: 52px; border-radius: 14px; background: var(--lime); color: #000;
+    font: 900 22px var(--sans); display: grid; place-items: center; }
+  .step h3 { font: 800 19px var(--sans); margin: 2px 0 4px; }
+  .step p { color: var(--dim); font-size: 16px; }
+  kbd { font: 700 13px var(--mono); background: #1c1c25; border: 1px solid #34343f; border-bottom-width: 3px; border-radius: 7px; padding: 2px 8px; color: var(--fg); }
+  .note { margin-top: 18px; max-width: 820px; border: 1px solid rgba(255,181,71,.35); background: rgba(255,181,71,.06); border-radius: 16px; padding: 18px 20px; font-size: 16px; color: #E8D9BE; }
+  .note b { color: #FFB547; }
+  pre.term { margin-top: 18px; max-width: 820px; background: #050507; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; font: 500 14px/1.7 var(--mono); color: #C9C9D2; overflow-x: auto; }
+  pre.term .c { color: #5e5e6a; }
+
+  /* config */
+  .table { margin-top: 36px; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; max-width: 920px; }
+  .row { display: grid; grid-template-columns: 180px 1fr 160px; gap: 16px; padding: 16px 22px; border-top: 1px solid var(--line); font-size: 15px; align-items: center; }
+  .row:first-child { border-top: 0; background: var(--panel2); font: 700 12px var(--mono); letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
+  .row code { font: 600 14px var(--mono); color: var(--lime); }
+  .row span:nth-child(2) { color: #B8B8C2; }
+  .row span:last-child code { color: var(--fg); }
+
+  /* faq */
+  .faq { margin-top: 36px; max-width: 820px; }
+  details { border-top: 1px solid var(--line); padding: 20px 0; }
+  details:last-child { border-bottom: 1px solid var(--line); }
+  summary { cursor: pointer; font: 700 19px var(--sans); list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  summary::after { content: '+'; color: var(--lime); font: 400 26px/1 var(--mono); }
+  details[open] summary::after { content: '–'; }
+  details p { color: var(--dim); margin-top: 10px; font-size: 16px; }
+
+  .final { text-align: center; padding: 110px 0; }
+  .final h2 { font-size: clamp(44px, 7vw, 84px); }
+  .final .cta { justify-content: center; }
+  footer { border-top: 1px solid var(--line); padding: 30px 0 40px; color: var(--dim); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
+
+  @media (max-width: 900px) {
+    nav .links { display: none; }
+    nav .btn { margin-left: auto; }
+    .hero { padding-top: 44px; }
+    .hero .wrap { grid-template-columns: 1fr; gap: 44px; }
+    .grid, .flow { grid-template-columns: 1fr; }
+    .try { grid-template-columns: 1fr; justify-items: center; text-align: left; }
+    .try > div:last-child { width: 100%; }
+    .row { grid-template-columns: 1fr; gap: 4px; }
+    .row:first-child { display: none; }
+    section { padding: 72px 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .caret { animation: none; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="/favicon.png" alt="">Echofy</a>
+    <div class="links">
+      <a href="#features">Features</a><a href="#how">How it works</a><a href="#install">Install</a><a href="#faq">FAQ</a>
+      <a href="https://github.com/ayazmirza54/echofy">GitHub</a>
+    </div>
+    <a class="btn btn-primary btn-sm dl" href="https://github.com/ayazmirza54/echofy/releases/latest/download/Echofy.exe">Download</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="kicker">Push-to-talk dictation for Windows</div>
+      <h1>Hold a key.<br>Talk.<br><em>It types.</em></h1>
+      <p class="lede">Echofy turns your voice into text in any app. Hold <kbd>Right Ctrl</kbd>, speak, let go: Whisper transcribes it <b>on your own machine</b> and types it where your cursor is. No cloud, no API keys, no account.</p>
+      <div class="cta">
+        <a class="btn btn-primary dl" href="https://github.com/ayazmirza54/echofy/releases/latest/download/Echofy.exe">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5Zm0 13 7.5 1.1v-7H3v5.9Zm8.4 1.2L21 21v-8.4h-9.6v7.1Zm0-15.4v7.2H21V3l-9.6 1.3Z"/></svg>
+          Download for Windows
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/ayazmirza54/echofy">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5Z"/></svg>
+          View source
+        </a>
+      </div>
+      <p class="meta" id="release-meta">Free · Windows 10/11 · 64-bit · <b>Runs 100% offline</b></p>
+    </div>
+    <div class="phone">
+      <video id="demo" src="/demo.mp4" poster="/poster.jpg" autoplay muted loop playsinline preload="metadata"></video>
+      <button class="unmute" id="unmute">🔊 Sound on</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="try" aria-label="Try the push-to-talk key">
+      <button class="key" id="key">RIGHT CTRL<small>HOLD ME</small></button>
+      <div>
+        <div class="kicker" style="margin-bottom:10px">Try it: hold the key (or your real Right Ctrl)</div>
+        <div class="console" id="log">ready.</div>
+        <div class="doc" id="doc"><span class="ph">Your words land here…</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="kicker">Why Echofy</div>
+    <h2>Dictation that stays on your PC.</h2>
+    <p class="sub">Built for people who type all day and would rather not ship their voice to a server to do it.</p>
+    <div class="grid">
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="7" width="18" height="11" rx="3"/><path d="M7 12h10"/></svg></div><h3>Push-to-talk</h3><p>Hold a hotkey to record, release to type. No wake words, no always-on mic.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><h3>100% local</h3><p>Whisper runs on your machine via faster-whisper. Audio never leaves your PC.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5h16v2M9 19h6M12 5v14"/></svg></div><h3>Types anywhere</h3><p>Injects real keystrokes, so it works in Slack, VS Code, Word, browsers, terminals…</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><h3>Works over RDP</h3><p>Same input path as a physical keyboard, so it types inside Remote Desktop sessions too.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></div><h3>Pick your model</h3><p>From <span class="mono">tiny.en</span> for slow laptops to <span class="mono">large-v3</span> for accuracy. NVIDIA GPU optional.</p></div>
+      <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></div><h3>No account</h3><p>No sign-up, no subscription, no API keys. Download, run, talk.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="kicker">How it works</div>
+    <h2>Three steps, all on your machine.</h2>
+    <div class="flow">
+      <div class="card"><div class="n">01 · HOLD</div><h3 style="margin-top:8px">Record while held</h3><p>A beep, then your mic records at 16&nbsp;kHz mono for as long as the hotkey is down.</p><code>[rec] listening...</code></div>
+      <div class="card"><div class="n">02 · RELEASE</div><h3 style="margin-top:8px">Transcribe locally</h3><p>faster-whisper runs the Whisper model on your CPU (or GPU), trimming silence first.</p><code>[rec] transcribing 3.6s...</code></div>
+      <div class="card"><div class="n">03 · TYPE</div><h3 style="margin-top:8px">Type into any app</h3><p>The text is typed into whatever window has focus, or pasted if you prefer.</p><code>keyboard.write(text)</code></div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <div class="kicker">Install</div>
+    <h2>Up and running in a minute.</h2>
+    <div class="steps">
+      <div class="step"><div><h3>Download Echofy.exe</h3><p>One file, nothing to install. <a class="dl" href="https://github.com/ayazmirza54/echofy/releases/latest/download/Echofy.exe">Get the latest release</a> (Windows 10/11, 64-bit).</p></div></div>
+      <div class="step"><div><h3>Run it</h3><p>A console window opens and shows your hotkey and model. Keep it open while you dictate; close it (or press <kbd>Ctrl</kbd>+<kbd>C</kbd>) to quit.</p></div></div>
+      <div class="step"><div><h3>Hold <kbd>Right Ctrl</kbd> and talk</h3><p>Put your cursor in any text field, hold the key, speak, release. The first dictation downloads the Whisper model (a few hundred MB, once); after that it works offline.</p></div></div>
+    </div>
+    <div class="note"><b>“Windows protected your PC”?</b> Echofy isn’t code-signed yet, so SmartScreen warns about new downloads. Click <b>More info → Run anyway</b>. The source is on GitHub, and every release is built from it by GitHub Actions.</div>
+    <pre class="term"><span class="c"># Prefer running from source? (Python 3.9–3.12)</span>
+git clone https://github.com/ayazmirza54/echofy
+cd echofy
+run.bat</pre>
+  </div>
+</section>
+
+<section id="config">
+  <div class="wrap">
+    <div class="kicker">Settings</div>
+    <h2>Tweak it in one JSON file.</h2>
+    <p class="sub"><span class="mono">Echofy_config.json</span> is created next to the app on first run. Edit it and restart.</p>
+    <div class="table">
+      <div class="row"><span>Key</span><span>What it does</span><span>Default</span></div>
+      <div class="row"><span><code>hotkey</code></span><span>Key held to dictate, e.g. <span class="mono">f9</span>, <span class="mono">ctrl+alt+space</span></span><span><code>right ctrl</code></span></div>
+      <div class="row"><span><code>model</code></span><span><span class="mono">tiny.en</span> · <span class="mono">base.en</span> · <span class="mono">small.en</span> · <span class="mono">medium.en</span> · <span class="mono">large-v3</span></span><span><code>base.en</code></span></div>
+      <div class="row"><span><code>device</code></span><span><span class="mono">cpu</span>, or <span class="mono">cuda</span> with <span class="mono">compute_type: "float16"</span> on NVIDIA</span><span><code>cpu</code></span></div>
+      <div class="row"><span><code>language</code></span><span><span class="mono">"en"</span>, or <span class="mono">null</span> to auto-detect</span><span><code>en</code></span></div>
+      <div class="row"><span><code>inject_mode</code></span><span><span class="mono">type</span> (keystrokes) or <span class="mono">paste</span> (clipboard + Ctrl+V)</span><span><code>type</code></span></div>
+      <div class="row"><span><code>beep</code></span><span>Beep when recording starts and stops</span><span><code>true</code></span></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="kicker">FAQ</div>
+    <h2>Questions.</h2>
+    <div class="faq">
+      <details><summary>Does my audio leave my computer?</summary><p>No. Recording and transcription both happen locally. The only download is the Whisper model itself, fetched once on first use and cached under your user profile.</p></details>
+      <details><summary>Why does Windows or my antivirus warn me?</summary><p>The .exe isn’t code-signed yet, and it listens for a global hotkey and types keystrokes, which some antivirus tools flag on unknown apps. It’s built from the public source by GitHub Actions; you can also run it from source.</p></details>
+      <details><summary>It doesn’t type into some apps.</summary><p>Windows blocks input into apps running as Administrator from non-elevated apps. If you dictate into an elevated window, run Echofy as Administrator too.</p></details>
+      <details><summary>How accurate and fast is it?</summary><p><span class="mono">base.en</span> is a good default on most CPUs. Move up to <span class="mono">small.en</span> or <span class="mono">medium.en</span> for accuracy, or down to <span class="mono">tiny.en</span> on slow machines. With an NVIDIA GPU, set <span class="mono">device</span> to <span class="mono">cuda</span> for a big speedup.</p></details>
+      <details><summary>Mac or Linux?</summary><p>Windows only for now.</p></details>
+      <details><summary>Can I use it in a Remote Desktop session?</summary><p>Yes. Run Echofy on the remote machine and set the RDP client’s “Remote audio recording” to “Record from this computer”. Typing needs no setup.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <div class="kicker">Free for Windows</div>
+    <h2>Stop typing.<br><em style="font-style:normal;color:var(--lime)">Start talking.</em></h2>
+    <div class="cta">
+      <a class="btn btn-primary dl" href="https://github.com/ayazmirza54/echofy/releases/latest/download/Echofy.exe">Download Echofy.exe</a>
+      <a class="btn btn-ghost" href="https://github.com/ayazmirza54/echofy/releases">All releases</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Echofy · built in <span class="mono">CLONE MODE · EP 01</span> by <a href="https://github.com/ayazmirza54">@ayazmirza54</a></span>
+    <span>Not affiliated with any commercial dictation product. Powered by <a href="https://github.com/SYSTRAN/faster-whisper">faster-whisper</a>.</span>
+  </div>
+</footer>
+
+<script>
+  // Sound toggle for the demo reel.
+  const video = document.getElementById('demo'), unmute = document.getElementById('unmute');
+  unmute.addEventListener('click', () => {
+    video.muted = !video.muted;
+    if (!video.muted) { video.currentTime = 0; video.play(); }
+    unmute.textContent = video.muted ? '🔊 Sound on' : '🔇 Mute';
+  });
+
+  // Show the latest version and size next to the download buttons.
+  fetch('https://api.github.com/repos/ayazmirza54/echofy/releases/latest')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(rel => {
+      const exe = (rel.assets || []).find(a => a.name.toLowerCase().endsWith('.exe'));
+      if (!exe) return;
+      const mb = Math.round(exe.size / 1048576);
+      document.getElementById('release-meta').innerHTML =
+        `<b>${rel.tag_name}</b> · ${mb} MB · Windows 10/11 · 64-bit · <b>Runs 100% offline</b>`;
+    })
+    .catch(() => {});
+
+  // Push-to-talk demo: hold the on-page key (or Right Ctrl) and a sample
+  // sentence types itself in when you let go, like the real app.
+  const SAMPLES = [
+    'Hey team, quick update. The launch moves to Friday because the tests are still failing.',
+    'Remind me to send the invoice to the client before lunch tomorrow.',
+    'This paragraph was typed by my voice, and the audio never left my laptop.',
+  ];
+  const key = document.getElementById('key'), log = document.getElementById('log'), doc = document.getElementById('doc');
+  let down = false, started = 0, timer = null, wave = null, n = 0;
+  const bars = () => '<span class="bars">' + '<i></i>'.repeat(14) + '</span>';
+  function press() {
+    if (down) return;
+    down = true; started = performance.now(); clearInterval(timer);
+    key.classList.add('down');
+    log.innerHTML = '♪ beep · [rec] listening... ' + bars();
+    const is = log.querySelectorAll('.bars i');
+    wave = setInterval(() => is.forEach((el, i) => el.style.height = (4 + Math.random() * 18 * Math.sin((i + .5) / is.length * Math.PI)) + 'px'), 90);
+  }
+  function release() {
+    if (!down) return;
+    down = false; key.classList.remove('down'); clearInterval(wave);
+    const secs = (performance.now() - started) / 1000;
+    if (secs < 0.3) { log.textContent = '[rec] too short, ignored.'; return; }
+    log.textContent = `♪ beep · [rec] transcribing ${secs.toFixed(1)}s...`;
+    const text = SAMPLES[n++ % SAMPLES.length];
+    setTimeout(() => {
+      log.textContent = `[rec] '${text.slice(0, 32)}…'`;
+      let i = 0; const base = doc.querySelector('.ph') ? '' : doc.textContent.trim() + ' ';
+      timer = setInterval(() => {
+        i += 2; doc.innerHTML = '';
+        doc.append(base + text.slice(0, i));
+        const c = document.createElement('span'); c.className = 'caret'; doc.append(c);
+        if (i >= text.length) clearInterval(timer);
+      }, 18);
+    }, 450);
+  }
+  key.addEventListener('pointerdown', e => { e.preventDefault(); key.setPointerCapture(e.pointerId); press(); });
+  key.addEventListener('pointerup', release);
+  key.addEventListener('pointercancel', release);
+  key.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); press(); } });
+  key.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') release(); });
+  addEventListener('keydown', e => { if (e.code === 'ControlRight') press(); });
+  addEventListener('keyup', e => { if (e.code === 'ControlRight') release(); });
+</script>
+</body>
+</html>

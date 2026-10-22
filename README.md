@@ -14,7 +14,14 @@ commercial dictation product.
 
 ---
 
-## Quick start
+## Download
+
+**[Download Echofy.exe](https://github.com/ayazmirza54/echofy/releases/latest/download/Echofy.exe)**
+(Windows 10/11, 64-bit): one file, nothing to install. Run it, hold `Right Ctrl`, talk.
+Windows may say "Windows protected your PC" because the app isn't code-signed yet:
+click **More info → Run anyway**. All versions: [Releases](https://github.com/ayazmirza54/echofy/releases).
+
+## Run from source
 
 1. Install **Python 3.9–3.12** (64-bit) and tick *"Add Python to PATH"*.
 2. Double-click **`run.bat`**.
@@ -112,6 +119,19 @@ If you'd rather capture audio on your local PC, run Echofy locally with
   (`%USERPROFILE%\.cache\huggingface`) and reused across runs.
 
 ---
+
+## Releasing
+
+Bump `VERSION` (e.g. `0.2.0`) and push to `main`. The
+[Release workflow](.github/workflows/release.yml) builds `Echofy.exe` with PyInstaller on
+Windows, smoke-tests it (`Echofy.exe --check`), creates the `v0.2.0` tag and publishes the
+release. A version with a suffix (`0.2.0-rc.1`) publishes a pre-release instead.
+
+## Website
+
+The landing page lives in [`site/`](site/index.html), a static page hosted on Vercel. Its
+download buttons point at `releases/latest/download/Echofy.exe`, so a new release needs no
+site change.
 
 ## Launch content
 
