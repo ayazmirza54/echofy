@@ -1,10 +1,13 @@
 # Builds Echofy.exe on Windows and publishes it to GitHub Releases.
-# Push a tag like v0.1.0 to cut a release; "Run workflow" builds a test .exe
-# (downloadable from the run's artifacts) without publishing.
+# To release: bump VERSION (e.g. 0.2.0) and push to main, or push a v* tag.
+# A version with a suffix (0.2.0-rc.1) publishes a pre-release. "Run workflow"
+# builds a test .exe (in the run's artifacts) without publishing.
 name: Release
 
 on:
   push:
+    branches: [main]
+    paths: [VERSION]
     tags: ["v*"]
   workflow_dispatch:
 
@@ -16,6 +19,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then tag="$GITHUB_REF_NAME"
+          else tag="v$(tr -d '[:space:]' < VERSION)"; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       # faster-whisper's ctranslate2 has no wheels for Python 3.13+ yet.
       - uses: actions/setup-python@v5
@@ -45,14 +56,16 @@ jobs:
           path: dist/Echofy.exe
 
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: dist/Echofy.exe
           generate_release_notes: true
           # Tags like v0.2.0-rc.1 publish a pre-release, which /releases/latest
           # (the website's download link) skips.
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
           body: |
             ## Install
             1. Download **Echofy.exe** below (Windows 10/11, 64-bit).
