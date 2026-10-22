@@ -473,7 +473,7 @@ function bubble(text, x, y, maxW, me, t0, t, size = 36, chars = 1e9) {
   return bh;
 }
 function segPrompt(lt, t) {
-  windowFrame(60, 360, 960, 1080, 'ai-chat — voiceflow');
+  windowFrame(60, 360, 960, 1080, 'ai-chat — echofy');
   const msg = 'build a floating voice dictation overlay. local whisper for speech-to-text + AI cleanup. make it look sick.';
   const chars = Math.floor(clamp(lt / .9) * msg.length);
   const bh = bubble(msg, 200, 480, 780, true, 0, t, 38, chars);
@@ -521,11 +521,11 @@ function terminal(lines, title, t) {
 function segInstall(lt, t) {
   const k = clamp(lt / .8), n = 24, f = Math.floor(k * n);
   terminal([
-    ['~/projects/voiceflow', C.cyan, 700],
+    ['~/projects/echofy', C.cyan, 700],
     ['$ npm install', C.fg],
     ['[' + '█'.repeat(f) + '░'.repeat(n - f) + '] ' + Math.floor(k * 100) + '%', C.acc],
     k >= 1 ? ['added 214 packages in 0.9s', C.dim] : ['resolving dependencies…', C.dim],
-  ], 'zsh — voiceflow', t);
+  ], 'zsh — echofy', t);
 }
 function segPreview(lt, t) {
   windowFrame(60, 360, 960, 1080, '');
@@ -561,7 +561,7 @@ function segBug(lt, t) {
   if (lt > 1.3) slam('×23', CX, 1100, t, 29.3, { size: 300, weight: 900, color: C.red, glow: 60 });
 }
 function segFix(lt, t) {
-  windowFrame(60, 360, 960, 1080, 'ai-chat — voiceflow');
+  windowFrame(60, 360, 960, 1080, 'ai-chat — echofy');
   bubble('fix it.', 600, 480, 380, true, 0, t, 40);
   const diff = [['- raw = model.transcribe(audio)["text"]', C.red, 'rgba(255,59,92,.14)'],
     ['+ audio = audio.astype(np.float32)', C.acc, 'rgba(198,255,61,.12)'],
@@ -579,10 +579,10 @@ function segRun(lt, t) {
   const zoom = 1 + eInOut(p(t, 33.2, 33.75)) * 1.4;
   ctx.save(); ctx.translate(CX, 760); ctx.scale(zoom, zoom); ctx.translate(-CX, -760);
   const typed = '$ npm run dev'.slice(0, Math.floor(clamp((t - 31.05) / .35) * 13));
-  const L = [['~/projects/voiceflow', C.cyan, 700], [typed, C.fg]];
+  const L = [['~/projects/echofy', C.cyan, 700], [typed, C.fg]];
   const checks = [['✓ Whisper (base) loaded locally', 31.5], ['✓ AI text cleanup enabled', 32.0], ['✓ Floating overlay rendered', 32.5]];
   checks.forEach(([s, ti]) => { if (t >= ti) L.push([s, C.green, 700]); });
-  terminal(L, '~/projects/voiceflow', t);
+  terminal(L, '~/projects/echofy', t);
   if (t >= 33.0) slam('✓ Ready on localhost:3000', 100, 760, t, 33.0, { size: 40, fam: MONO, weight: 800, color: C.acc, glow: 30, align: 'left', from: 1.3, shake: 6 });
   ctx.restore();
 }

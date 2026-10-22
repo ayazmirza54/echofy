@@ -28,7 +28,7 @@ Needs Node 22, ffmpeg, and Playwright with Chromium. It takes about 10–15 minu
 | 0:05–0:12 | Challenge | Voice / launcher / workspace cards float in 3D, each gets a REBUILD stamp → "POPULAR APPS → MY OWN VERSIONS" |
 | 0:12–0:22 | Target 01 | Lock-on reticle on WISPR FLOW → mic orb + waveform → raw transcript, fillers struck out → cleaned text |
 | 0:22–0:34 | Montage | Prompt → generated code → npm install → preview → 23 bugs → "fix it." diff → `npm run dev` ✓✓✓ → Ready |
-| 0:34–0:47 | Reveal | Drop: "IT ACTUALLY WORKS." → VOICEFLOW demo: messy speech in the floating pill → clean text in the email, with callouts |
+| 0:34–0:47 | Reveal | Drop: "IT ACTUALLY WORKS." → ECHOFY demo: messy speech in the floating pill → clean text in the email, with callouts |
 | 0:47–1:00 | Teaser | Pull-back into an episode grid (EP 02/03 blurred "?") → "ONE APP. ONE CHALLENGE. UNLIMITED VIBES." → end card + follow CTA |
 
 ## Making it yours

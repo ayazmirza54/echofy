@@ -9,7 +9,7 @@ globalThis.TL = {
   series: "CLONE MODE",
   episode: "EP 01",
   episodeTitle: "REBUILDING WISPR FLOW",
-  appName: "VOICEFLOW",
+  appName: "ECHOFY",
   handle: "@ayazmirza54",
 
   scenes: [
