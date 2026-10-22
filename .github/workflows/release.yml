@@ -50,6 +50,9 @@ jobs:
         with:
           files: dist/Echofy.exe
           generate_release_notes: true
+          # Tags like v0.2.0-rc.1 publish a pre-release, which /releases/latest
+          # (the website's download link) skips.
+          prerelease: ${{ contains(github.ref_name, '-') }}
           body: |
             ## Install
             1. Download **Echofy.exe** below (Windows 10/11, 64-bit).
