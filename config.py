@@ -1,15 +1,22 @@
 """Configuration loading/saving for Echofy.
 
-Settings live in a JSON file next to this script (Echofy_config.json).
+Settings live in a JSON file next to this script, or next to Echofy.exe
+when running the packaged build (Echofy_config.json).
 Missing keys fall back to the defaults below, so an old or partial config
 file keeps working after an upgrade.
 """
 
 import json
 import os
+import sys
 
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           "Echofy_config.json")
+# A PyInstaller one-file build unpacks to a temp folder on every launch, so
+# keep the config next to the .exe instead of next to this module.
+if getattr(sys, "frozen", False):
+    _APP_DIR = os.path.dirname(os.path.abspath(sys.executable))
+else:
+    _APP_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(_APP_DIR, "Echofy_config.json")
 
 DEFAULTS = {
     # Hotkey held down to dictate. Uses the `keyboard` library's names.

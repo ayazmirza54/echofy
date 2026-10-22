@@ -1,0 +1,59 @@
+# Builds Echofy.exe on Windows and publishes it to GitHub Releases.
+# Push a tag like v0.1.0 to cut a release; "Run workflow" builds a test .exe
+# (downloadable from the run's artifacts) without publishing.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # faster-whisper's ctranslate2 has no wheels for Python 3.13+ yet.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build Echofy.exe
+        run: >
+          pyinstaller main.py --onefile --console --noconfirm
+          --name Echofy --icon assets/echofy.ico
+          --collect-all faster_whisper --collect-all ctranslate2
+          --collect-all onnxruntime --collect-all _sounddevice_data
+
+      # Loads a Whisper model and transcribes silence with the packaged .exe,
+      # which fails fast if a native library or data file was left out.
+      - name: Smoke test
+        run: dist\Echofy.exe --check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Echofy
+          path: dist/Echofy.exe
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Echofy.exe
+          generate_release_notes: true
+          body: |
+            ## Install
+            1. Download **Echofy.exe** below (Windows 10/11, 64-bit).
+            2. Run it. Windows may show "Windows protected your PC" because the app isn't code-signed yet: click **More info → Run anyway**.
+            3. Put your cursor in any text field, **hold Right Ctrl**, speak, and release. The first dictation downloads the Whisper model (a few hundred MB, once).
+
+            Settings are saved to `Echofy_config.json` next to the .exe. Everything runs offline; audio never leaves your machine.

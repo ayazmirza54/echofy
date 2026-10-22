@@ -263,7 +263,24 @@ def _last_key(hotkey):
     return hotkey.split("+")[-1].strip()
 
 
+def self_check():
+    """Smoke test for the packaged build: load a model and transcribe silence.
+
+    Exercises the bundled native pieces (ctranslate2, the VAD model,
+    PortAudio) without needing a microphone or a hotkey.
+    """
+    from faster_whisper import WhisperModel
+
+    print(f"PortAudio: {sd.get_portaudio_version()[1]}")
+    model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
+    segments, _ = model.transcribe(np.zeros(16000, dtype=np.float32), vad_filter=True)
+    print(f"Transcribed {len(list(segments))} segment(s) of silence. Echofy OK.")
+
+
 def main():
+    if "--check" in sys.argv:
+        self_check()
+        return
     cfg = config.load_config()
     Echofy(cfg).run()
 
